@@ -1,0 +1,1029 @@
+{
+  "name": "AI Trade Fair Assistant - Portfolio Version",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "responseMode": "lastNode"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        368
+      ],
+      "id": "(Portfolio Instance)",
+      "name": "When chat message received",
+      "webhookId": "Portfolio ID"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.chatInput }}",
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{\n  \"contact_name\": \"Test Dummy\",\n  \"company_name\": \"dm-drogerie markt\",\n  \"email\": \"test.dummy@example.com\",\n  \"role\": \"People Development\",\n  \"training_needs\": [\"Leadership training for first-time managers\"],\n  \"pain_points\": [\"Need scalable development across locations\"],\n  \"need_status\": \"specific\",\n  \"budget_status\": \"approved_reserved\",\n  \"timeline_status\": \"few_months\",\n  \"scope_status\": \"large_multi_country_or_100plus\",\n  \"engagement_status\": \"concrete_follow_up\",\n  \"timeline_text\": \"Budget approved for this year; follow up within two weeks\",\n  \"requested_follow_up\": \"Follow up within two weeks\",\n  \"uncertainties\": [],\n  \"summary\": \"Regional people development lead evaluating scalable leadership training for first-time managers.\"\n}",
+        "options": {
+          "systemPromptTemplate": "Extract the lead information.\n \nFor the following fields, use ONLY the allowed values.\n \nneed_status:\n- specific\n- general\n- none\n \nbudget_status:\n- approved_reserved\n- available_not_fixed\n- unknown\n- unavailable\n \ntimeline_status:\n- within_1_month\n- few_months\n- within_12_months\n- next_year_or_vague\n- none\n \nscope_status:\n- large_multi_country_or_100plus\n- medium_or_multi_team\n- small_company_under_10\n \nengagement_status:\n- proposal_requested\n- concrete_follow_up\n- materials_or_info_requested\n- casual_interest\n- none\n \nNever create alternative values.\nAlways return one of the values above exactly as written."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        368
+      ],
+      "id": "0bc57ccc-132b-46a1-ab81-7300cde90e57",
+      "name": "Extract Lead Notes",
+      "retryOnFail": true,
+      "waitBetweenTries": 1200
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer (Your Tavily API-Key)"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"query\": \"Research this company for a B2B training sales lead: \" + $json.output.company_name + \". Find the current company description, headquarters, approximate employee count, main products/services, countries or regions of operation, and any significant publicly documented legal, regulatory, or reputational issues. Prefer official company pages, reputable business sources, and major news outlets. Do not speculate. Include evidence and source URLs.\", \"search_depth\": \"advanced\", \"max_results\": 6, \"topic\": \"general\", \"include_answer\": \"advanced\", \"include_raw_content\": false, \"safe_search\": true } }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        560,
+        368
+      ],
+      "id": "b9476db0-cf80-4c47-8cc1-71a2099f0da8",
+      "name": "Tavily Company Research"
+    },
+    {
+      "parameters": {
+        "text": "={{ JSON.stringify($json) }}",
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{\n  \"company_description\": \"Large retail company operating in Europe.\",\n  \"headquarters\": \"Karlsruhe, Germany\",\n  \"approximate_employees\": 50000,\n  \"employee_count_source_note\": \"Approximate current figure from retrieved sources\",\n  \"products_services\": [\"Retail\", \"Consumer goods\"],\n  \"geographic_presence\": \"Germany and several European markets\",\n  \"legal_regulatory_reputational_issues\": [],\n  \"source_urls\": [\"https://example.com/source\"]\n}",
+        "options": {
+          "systemPromptTemplate": "You extract company facts ONLY from the Tavily search response supplied to you. Do not use your own background knowledge. Do not invent or estimate facts that are absent from the retrieved results.\\n\\nRules:\\n- company_description: concise factual description based only on retrieved evidence.\\n- headquarters: return \"Unknown\" if not supported.\\n- approximate_employees: return a whole number if a credible approximate employee count is supported; otherwise return 0.\\n- employee_count_source_note: briefly state what the retrieved result says, or \"Unknown\".\\n- products_services: list main products/services supported by retrieved results.\\n- geographic_presence: concise description of countries/regions supported by retrieved results, or \"Unknown\".\\n- legal_regulatory_reputational_issues: include only significant, publicly documented issues surfaced in the retrieved results. Phrase neutrally and factually. If none surfaced, return an empty list; do NOT claim that none exist globally.\\n- source_urls: include the most relevant retrieved URLs.\\n\\nNever call a company 'shady' and never infer wrongdoing."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        800,
+        368
+      ],
+      "id": "abab7c46-dedf-4cf0-be99-29943bd94533",
+      "name": "Extract Company Research",
+      "retryOnFail": true,
+      "waitBetweenTries": 1200
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "contact_name",
+              "value": "={{ $('Extract Lead Notes').item.json.output.contact_name }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "company_name",
+              "value": "={{ $('Extract Lead Notes').item.json.output.company_name }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "email",
+              "value": "={{ $('Extract Lead Notes').item.json.output.email }}",
+              "type": "string"
+            },
+            {
+              "id": "4",
+              "name": "role",
+              "value": "={{ $('Extract Lead Notes').item.json.output.role }}",
+              "type": "string"
+            },
+            {
+              "id": "5",
+              "name": "training_needs",
+              "value": "={{ $('Extract Lead Notes').item.json.output.training_needs }}",
+              "type": "array"
+            },
+            {
+              "id": "6",
+              "name": "pain_points",
+              "value": "={{ $('Extract Lead Notes').item.json.output.pain_points }}",
+              "type": "array"
+            },
+            {
+              "id": "7",
+              "name": "need_status",
+              "value": "={{ $('Extract Lead Notes').item.json.output.need_status }}",
+              "type": "string"
+            },
+            {
+              "id": "8",
+              "name": "budget_status",
+              "value": "={{ $('Extract Lead Notes').item.json.output.budget_status }}",
+              "type": "string"
+            },
+            {
+              "id": "9",
+              "name": "timeline_status",
+              "value": "={{ $('Extract Lead Notes').item.json.output.timeline_status }}",
+              "type": "string"
+            },
+            {
+              "id": "10",
+              "name": "scope_status",
+              "value": "={{ $('Extract Lead Notes').item.json.output.scope_status }}",
+              "type": "string"
+            },
+            {
+              "id": "11",
+              "name": "engagement_status",
+              "value": "={{ $('Extract Lead Notes').item.json.output.engagement_status }}",
+              "type": "string"
+            },
+            {
+              "id": "12",
+              "name": "timeline_text",
+              "value": "={{ $('Extract Lead Notes').item.json.output.timeline_text }}",
+              "type": "string"
+            },
+            {
+              "id": "13",
+              "name": "requested_follow_up",
+              "value": "={{ $('Extract Lead Notes').item.json.output.requested_follow_up }}",
+              "type": "string"
+            },
+            {
+              "id": "14",
+              "name": "uncertainties",
+              "value": "={{ $('Extract Lead Notes').item.json.output.uncertainties }}",
+              "type": "array"
+            },
+            {
+              "id": "15",
+              "name": "notes_summary",
+              "value": "={{ $('Extract Lead Notes').item.json.output.summary }}",
+              "type": "string"
+            },
+            {
+              "id": "16",
+              "name": "company_description",
+              "value": "={{ $json.output.company_description }}",
+              "type": "string"
+            },
+            {
+              "id": "17",
+              "name": "headquarters",
+              "value": "={{ $json.output.headquarters }}",
+              "type": "string"
+            },
+            {
+              "id": "18",
+              "name": "approximate_employees",
+              "value": "={{ $json.output.approximate_employees }}",
+              "type": "number"
+            },
+            {
+              "id": "19",
+              "name": "employee_count_source_note",
+              "value": "={{ $json.output.employee_count_source_note }}",
+              "type": "string"
+            },
+            {
+              "id": "20",
+              "name": "products_services",
+              "value": "={{ $json.output.products_services }}",
+              "type": "array"
+            },
+            {
+              "id": "21",
+              "name": "geographic_presence",
+              "value": "={{ $json.output.geographic_presence }}",
+              "type": "string"
+            },
+            {
+              "id": "22",
+              "name": "legal_regulatory_reputational_issues",
+              "value": "={{ $json.output.legal_regulatory_reputational_issues }}",
+              "type": "array"
+            },
+            {
+              "id": "23",
+              "name": "source_urls",
+              "value": "={{ $json.output.source_urls }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1136,
+        368
+      ],
+      "id": "ad04918f-f436-4c11-a48d-eab3cfe908c9",
+      "name": "Combine Lead + Research"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "def esc(value):\n    if value is None:\n        return \"\"\n    text = str(value)\n    return (\n        text.replace(\"&\", \"&amp;\")\n        .replace(\"<\", \"&lt;\")\n        .replace(\">\", \"&gt;\")\n        .replace('\"', \"&quot;\")\n        .replace(\"'\", \"&#39;\")\n    )\n\ndef list_html(values, empty_text=\"None identified\"):\n    if not values:\n        return \"<p>\" + esc(empty_text) + \"</p>\"\n    return \"<ul>\" + \"\".join(\"<li>\" + esc(v) + \"</li>\" for v in values) + \"</ul>\"\n\nneed_points = {\n    \"specific\": 20,\n    \"general\": 10,\n    \"none\": 0,\n}\n\nbudget_points = {\n    \"approved_reserved\": 25,\n    \"available_not_fixed\": 18,\n    \"unknown\": 8,\n    \"unavailable\": 0,\n}\n\ntimeline_points = {\n    \"within_1_month\": 20,\n    \"few_months\": 15,\n    \"within_12_months\": 10,\n    \"next_year_or_vague\": 5,\n    \"none\": 0,\n}\n\nengagement_points = {\n    \"proposal_requested\": 15,\n    \"concrete_follow_up\": 12,\n    \"materials_or_info_requested\": 8,\n    \"casual_interest\": 4,\n    \"none\": 0,\n}\n\noutputs = []\n\nfor item in _items:\n    row = item[\"json\"]\n\n    need_score = need_points.get(row.get(\"need_status\", \"none\"), 0)\n    budget_score = budget_points.get(row.get(\"budget_status\", \"unknown\"), 8)\n    timeline_score = timeline_points.get(row.get(\"timeline_status\", \"none\"), 0)\n    engagement_score = engagement_points.get(row.get(\"engagement_status\", \"none\"), 0)\n\n    employees = row.get(\"approximate_employees\") or 0\n    scope_status = row.get(\"scope_status\", \"unknown\")\n\n    if scope_status == \"large_multi_country_or_100plus\":\n        scope_score = 20\n    elif scope_status == \"small_company_under_10\":\n        scope_score = 0\n    elif employees >= 1000:\n        scope_score = 20\n    elif employees >= 250:\n        scope_score = 15\n    elif employees >= 50:\n        scope_score = 10\n    elif employees >= 10:\n        scope_score = 5\n    elif employees > 0:\n        scope_score = 0\n    elif scope_status == \"medium_or_multi_team\":\n        scope_score = 12\n    else:\n        scope_score = 8\n\n    total = need_score + budget_score + timeline_score + scope_score + engagement_score\n\n    if total >= 75:\n        temperature = \"Hot\"\n    elif total >= 50:\n        temperature = \"Warm\"\n    else:\n        temperature = \"Cold\"\n\n    score_reasons = [\n        \"Training need: +\" + str(need_score),\n        \"Budget signal: +\" + str(budget_score),\n        \"Timing: +\" + str(timeline_score),\n        \"Company size / scope: +\" + str(scope_score),\n        \"Engagement / next step: +\" + str(engagement_score),\n    ]\n\n    requested = row.get(\"requested_follow_up\") or \"Unknown\"\n    if requested != \"Unknown\":\n        recommended_next_step = requested\n    elif temperature == \"Hot\":\n        recommended_next_step = \"Schedule a discovery call within one week.\"\n    elif temperature == \"Warm\":\n        recommended_next_step = \"Send relevant case studies and agree a follow-up date.\"\n    else:\n        recommended_next_step = \"Send a general overview and add the lead to a nurture list.\"\n\n    issues = row.get(\"legal_regulatory_reputational_issues\") or []\n    if issues:\n        issues_html = list_html(issues)\n    else:\n        issues_html = \"<p>No significant issue surfaced in the retrieved search results. This does not prove that none exist.</p>\"\n\n    sources = row.get(\"source_urls\") or []\n    if sources:\n        source_items = []\n        for url in sources:\n            safe_url = esc(url)\n            source_items.append('<li><a href=\"' + safe_url + '\">' + safe_url + \"</a></li>\")\n        sources_html = \"<ul>\" + \"\".join(source_items) + \"</ul>\"\n    else:\n        sources_html = \"<p>No source URLs were extracted.</p>\"\n\n    uncertainties = row.get(\"uncertainties\") or []\n    uncertainty_html = list_html(uncertainties, \"No uncertainty explicitly noted in the meeting notes.\")\n\n    company = row.get(\"company_name\", \"Unknown company\")\n    contact = row.get(\"contact_name\", \"Unknown\")\n    role = row.get(\"role\", \"Unknown\")\n    email = row.get(\"email\", \"Unknown\")\n\n    email_subject = \"Trade Fair Lead Report | \" + company + \" | \" + str(total) + \"/100 \" + temperature\n\n    email_html = f\"\"\"\n<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:760px;margin:0 auto;color:#222;line-height:1.5\">\n  <h1 style=\"font-size:24px;margin-bottom:6px\">Trade Fair Lead Report</h1>\n  <p style=\"margin-top:0;color:#666\">{esc(company)}</p>\n\n  <div style=\"padding:16px;border:1px solid #ddd;border-radius:10px;margin:20px 0\">\n    <h2 style=\"margin-top:0;font-size:18px\">Contact</h2>\n    <p>\n      <strong>{esc(contact)}</strong><br>\n      {esc(role)}<br>\n      {esc(email)}\n    </p>\n  </div>\n\n  <div style=\"padding:16px;border:1px solid #ddd;border-radius:10px;margin:20px 0\">\n    <h2 style=\"margin-top:0;font-size:18px\">Lead score</h2>\n    <p style=\"font-size:28px;margin:0\"><strong>{total}/100</strong> - {esc(temperature)}</p>\n  </div>\n\n  <h2 style=\"font-size:18px\">Opportunity summary</h2>\n  <p>{esc(row.get(\"notes_summary\", \"Unknown\"))}</p>\n\n  <h2 style=\"font-size:18px\">Training interests</h2>\n  {list_html(row.get(\"training_needs\") or [])}\n\n  <h2 style=\"font-size:18px\">Pain points</h2>\n  {list_html(row.get(\"pain_points\") or [])}\n\n  <h2 style=\"font-size:18px\">Budget and timing</h2>\n  <p>\n    <strong>Budget:</strong> {esc(row.get(\"budget_status\", \"unknown\"))}<br>\n    <strong>Timing:</strong> {esc(row.get(\"timeline_text\", \"Unknown\"))}\n  </p>\n\n  <h2 style=\"font-size:18px\">Company background</h2>\n  <p>{esc(row.get(\"company_description\", \"Unknown\"))}</p>\n  <p>\n    <strong>Headquarters:</strong> {esc(row.get(\"headquarters\", \"Unknown\"))}<br>\n    <strong>Approx. employees:</strong> {esc(employees if employees else \"Unknown\")}<br>\n    <strong>Employee-count note:</strong> {esc(row.get(\"employee_count_source_note\", \"Unknown\"))}<br>\n    <strong>Geographic presence:</strong> {esc(row.get(\"geographic_presence\", \"Unknown\"))}\n  </p>\n\n  <h3 style=\"font-size:16px\">Products / services</h3>\n  {list_html(row.get(\"products_services\") or [])}\n\n  <h3 style=\"font-size:16px\">Publicly reported legal / regulatory / reputational issues</h3>\n  {issues_html}\n\n  <h2 style=\"font-size:18px\">Why this score</h2>\n  {list_html(score_reasons)}\n\n  <h2 style=\"font-size:18px\">Recommended next step</h2>\n  <p>{esc(recommended_next_step)}</p>\n\n  <h2 style=\"font-size:18px\">Data quality / uncertainty</h2>\n  {uncertainty_html}\n\n  <h2 style=\"font-size:18px\">Sources</h2>\n  {sources_html}\n\n  <hr style=\"border:none;border-top:1px solid #ddd;margin:24px 0\">\n  <p style=\"font-size:12px;color:#777\">\n    Prototype generated from salesperson notes plus public web research. Company research should be reviewed before being used for an important sales decision.\n  </p>\n</div>\n\"\"\"\n\n    result = dict(row)\n    result[\"lead_score\"] = total\n    result[\"lead_temperature\"] = temperature\n    result[\"score_reasons\"] = score_reasons\n    result[\"recommended_next_step\"] = recommended_next_step\n    result[\"email_subject\"] = email_subject\n    result[\"email_html\"] = email_html\n\n    outputs.append({\"json\": result})\n\nreturn outputs"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        368
+      ],
+      "id": "40b75cba-e95b-48ae-86d6-02cb1cc13f10",
+      "name": "Calculate Score + Build Report"
+    },
+    {
+      "parameters": {
+        "sendTo": "your@e-mail.com",
+        "subject": "=  {{ $json.email_subject }}",
+        "message": "={{ $json.email_html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1568,
+        368
+      ],
+      "id": "4bae6a45-0316-47d8-a1fa-68f7c2fd27c6",
+      "name": "Send Lead Report",
+      "webhookId": "21a064e7-6d52-4619-8443-dd6831307b77",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "(Your Google ID)",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "reply-1",
+              "name": "text",
+              "value": "={{ 'Done - ' + $('Calculate Score + Build Report').item.json.company_name + ' scored ' + $('Calculate Score + Build Report').item.json.lead_score + '/100 (' + $('Calculate Score + Build Report').item.json.lead_temperature + '). The lead report was emailed successfully.' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1760,
+        368
+      ],
+      "id": "2302e5e8-7d97-4e2d-97ff-7c3a53be329b",
+      "name": "Chat Reply"
+    },
+    {
+      "parameters": {
+        "content": "## Lead Scoring (100 points)\n- Training need: 20\n- Budget: 25\n- Timing: 20\n- Company size / scope: 20\n- Engagement / next step: 15\n\nLead categories\n- 75-100 = Hot\n- 50-74 = Warm\n- 0-49 = Cold",
+        "height": 296,
+        "width": 252,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1232,
+        576
+      ],
+      "id": "22c189d8-cd6e-43e4-8751-2a651ce55992",
+      "name": "Setup Notes"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/EXAMPLE_SHEET_ID/edit",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Tabellenblatt1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SHEET_ID/edit"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now.toISO() }}",
+            "Contact": "={{ $json.contact_name }}",
+            "Company": "={{ $json.company_name }}",
+            "Email": "={{ $json.email }}",
+            "Role": "={{ $json.role }}",
+            "Lead Score": "={{ $json.lead_score }}",
+            "Temperature": "={{ $json.lead_temperature }}",
+            "Training Needs": "={{ $json.training_needs.join(', ') }}",
+            "Pain Points": "={{ $json.pain_points.join(', ') }}",
+            "Budget": "={{ $json.budget_status }}",
+            "Timeline": "={{ $json.timeline_text }}",
+            "Employees": "={{ $json.employee_count_source_note }}",
+            "Headquarters": "={{ $json.headquarters }}",
+            "Recommended Next Step": "={{ $json.recommended_next_step }}",
+            "Summary": "={{ $json.notes_summary }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Contact",
+              "displayName": "Contact",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Role",
+              "displayName": "Role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Score",
+              "displayName": "Lead Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Temperature",
+              "displayName": "Temperature",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Training Needs",
+              "displayName": "Training Needs",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Pain Points",
+              "displayName": "Pain Points",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Budget",
+              "displayName": "Budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Timeline",
+              "displayName": "Timeline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Employees",
+              "displayName": "Employees",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Headquarters",
+              "displayName": "Headquarters",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Recommended Next Step",
+              "displayName": "Recommended Next Step",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1568,
+        560
+      ],
+      "id": "9142fe65-dc0c-411f-8749-1ce9074a5bb6",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "(Your Google ID)",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "0d392897-921c-41dc-ab03-b157e56e99d5",
+              "leftValue": "={{ $('Calculate Score + Build Report').item.json.lead_score }}",
+              "rightValue": 30,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            },
+            {
+              "id": "fce7f3b4-b680-4e31-9c00-eee59220e41b",
+              "leftValue": "={{ $('Calculate Score + Build Report').item.json.email }}",
+              "rightValue": "Unknown",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1744,
+        576
+      ],
+      "id": "43047829-ca5a-4cae-8ac0-24754c2c368e",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a concise professional B2B follow-up email for this trade fair lead.\n\nUse ONLY the information below. Do not invent facts.\n\nContact name:\n{{ $('Calculate Score + Build Report').item.json.contact_name }}\n\nCompany:\n{{ $('Calculate Score + Build Report').item.json.company_name }}\n\nRole:\n{{ $('Calculate Score + Build Report').item.json.role }}\n\nTraining needs:\n{{ $('Calculate Score + Build Report').item.json.training_needs.join(', ') }}\n\nPain points:\n{{ $('Calculate Score + Build Report').item.json.pain_points.join(', ') }}\n\nConversation summary:\n{{ $('Calculate Score + Build Report').item.json.notes_summary }}\n\nRequested follow-up:\n{{ $('Calculate Score + Build Report').item.json.requested_follow_up }}\n\nRecommended next step:\n{{ $('Calculate Score + Build Report').item.json.recommended_next_step }}\n\nInstructions:\n- Write only the email body.\n- Do not write a subject line.\n- Keep it around 80-140 words.\n- Be friendly, professional and concise.\n- Refer to one concrete topic discussed with the lead.\n- Include one relevant talking point based on their training need or pain point.\n- Suggest a simple next step.\n- Avoid aggressive or exaggerated sales language.\n- Never mention the lead score.\n- Never mention AI.\n- Do not invent names, dates, products or promises.\n- If the contact name is \"Unknown\", use a neutral greeting such as \"Hello,\".\n- Use the language of the lead notes if it is clear. Otherwise use English.",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1968,
+        576
+      ],
+      "id": "c7cd1546-ef2a-453b-8435-a0c251c06297",
+      "name": "Basic LLM Chain",
+      "retryOnFail": true,
+      "waitBetweenTries": 1200
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "=Follow-up | {{ $('Calculate Score + Build Report').item.json.company_name }}",
+        "message": "={{ $json.text }}",
+        "options": {
+          "sendTo": "={{ $('Calculate Score + Build Report').item.json.email }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2272,
+        576
+      ],
+      "id": "014cd71d-b567-4430-aeef-4213f95421e9",
+      "name": "Create a draft",
+      "webhookId": "Portfolio Webhook",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "(Your Google ID)",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1872,
+        768
+      ],
+      "id": "9019ec14-22c5-4c9f-ba17-3a6b796413ed",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        256,
+        592
+      ],
+      "id": "2f01cfb8-ba5e-4867-9af3-0af85c4fc493",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "(Your Groq ID)",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        848,
+        576
+      ],
+      "id": "f69c7e93-58ee-40a2-a88a-c34d692ddac8",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "(Your Groq ID)",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3.8-27b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        2144,
+        752
+      ],
+      "id": "b423dbff-cb4a-463e-bf97-6e15487ef118",
+      "name": "Groq Chat Model2",
+      "credentials": {
+        "groqApi": {
+          "id": "(Your Groq ID)",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Lead Capture\n\nCapture trade fair notes\nand extract lead details\nusing AI.",
+        "height": 112,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        144
+      ],
+      "id": "fe446bf7-6ff2-438b-be32-e58209c28bfb",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Sales Notes\nTrade fair conversation notes",
+        "height": 80,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        144
+      ],
+      "id": "e71d5f29-637e-41f4-9a06-1d5630f7c7a7",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Company Research\nResearch company data\nfrom public sources\nto enrich the lead.",
+        "height": 144,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        608,
+        144
+      ],
+      "id": "48a21de5-7efe-4f6a-a525-1439faf4666e",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Data Consolidation\nCombine lead information\nwith company research\ninto one profile.",
+        "height": 112,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        976,
+        144
+      ],
+      "id": "5dd0df0a-8243-4793-97b4-67855e87cefb",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Lead Scoring\nCalculate lead score\nbased on need, budget,\ntiming and engagement.",
+        "height": 112,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        144
+      ],
+      "id": "6b74214a-244a-4382-a21f-d01f4a5a7b85",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## Management Report\nGenerate and email\na detailed lead report\nfor review.",
+        "height": 144,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1568,
+        144
+      ],
+      "id": "4ebae81b-28ea-479a-a683-77649ac0a80d",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "## CRM Logging\nStore lead data\nin Google Sheets\nfor tracking.",
+        "height": 112,
+        "width": 256,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1520,
+        944
+      ],
+      "id": "79bdbee8-efce-402b-a03d-147c60ec957e",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "## Follow-Up Draft\nGenerate a personalized\nfollow-up email draft\nfor qualified leads.",
+        "height": 112,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2160,
+        944
+      ],
+      "id": "c9aa3bdf-b642-48f6-8b3f-4d69816bcc67",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "## Lead Qualification Gate\nExclude cold leads and\ncontacts without a\nusable email address.",
+        "height": 144,
+        "width": 272,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1840,
+        944
+      ],
+      "id": "0f7e8bf1-865a-4aa5-b390-400f6b054ff4",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "content": "## AI-Powered Trade Fair Lead Assistant\nCaptures trade fair notes\nresearches companies\nscores opportunities\ncreates management reports\nand drafts follow-up emails",
+        "width": 464,
+        "color": "#631818"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        -128
+      ],
+      "id": "dc8502fe-8f44-45e7-82a1-9918b413f729",
+      "name": "Sticky Note8"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Extract Lead Notes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Lead Notes": {
+      "main": [
+        [
+          {
+            "node": "Tavily Company Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tavily Company Research": {
+      "main": [
+        [
+          {
+            "node": "Extract Company Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Company Research": {
+      "main": [
+        [
+          {
+            "node": "Combine Lead + Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Lead + Research": {
+      "main": [
+        [
+          {
+            "node": "Calculate Score + Build Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Score + Build Report": {
+      "main": [
+        [
+          {
+            "node": "Send Lead Report",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Lead Report": {
+      "main": [
+        [
+          {
+            "node": "Chat Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extract Lead Notes",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extract Company Research",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "bf8f0533-dc5d-4bee-abaf-d068b52bef7e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "(Portfolio Instance)"
+  },
+  "nodeGroups": [],
+  "id": "Portfolio ID",
+  "tags": [
+    {
+      "updatedAt": "2026-09-30T10:08:10.819Z",
+      "createdAt": "2026-09-30T10:08:10.819Z",
+      "id": "GeMr80WYuJRCR6og",
+      "name": "CRM"
+    },
+    {
+      "updatedAt": "2026-09-30T10:07:18.888Z",
+      "createdAt": "2026-09-30T10:07:18.888Z",
+      "id": "IvhrBXu6MNMjnnYD",
+      "name": "AI"
+    },
+    {
+      "updatedAt": "2026-09-30T10:07:34.493Z",
+      "createdAt": "2026-09-30T10:07:34.493Z",
+      "id": "bsH7bluWHii39Flq",
+      "name": "Lead Scoring"
+    },
+    {
+      "updatedAt": "2026-09-30T10:07:51.585Z",
+      "createdAt": "2026-09-30T10:07:51.585Z",
+      "id": "dbkFzjQWShwdbM7E",
+      "name": "Trade Fair"
+    },
+    {
+      "updatedAt": "2026-09-30T10:07:39.152Z",
+      "createdAt": "2026-09-30T10:07:39.152Z",
+      "id": "nMs2GoPWcxozNn4E",
+      "name": "Sales"
+    }
+  ]
+}
