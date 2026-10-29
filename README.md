@@ -1,14 +1,14 @@
-# n8n-Trade-Fair-Assistant-Prototype
+# n8n Trade Fair Assistant Prototype
 
 An AI-powered lead qualification and follow-up workflow built with n8n.
 
-The workflow transforms unstructured trade fair conversation notes into enriched sales opportunities by combining AI extraction, company research, lead scoring, CRM logging and automated report generation.
+This workflow transforms unstructured trade fair conversation notes into enriched sales opportunities by combining AI-powered lead extraction, company research, lead scoring, CRM logging, automated reporting, and follow-up email drafting.
 
 ---
 
 ## Overview
 
-Many trade fair leads are documented inconsistently, making follow-up activities difficult and time-consuming.
+Many trade fair leads are documented inconsistently, making qualification and follow-up activities difficult and time-consuming.
 
 This prototype automates the process by:
 
@@ -21,9 +21,9 @@ This prototype automates the process by:
 
 ---
 
-## Workflow
+## Workflow Overview
 
-![Workflow Overview](screenshots/workflow-overview.png)
+![Workflow Overview](workflow.png)
 
 ### Process Flow
 
@@ -38,7 +38,7 @@ This prototype automates the process by:
 
 ---
 
-## Features
+## Key Features
 
 ### AI Lead Extraction
 
@@ -65,17 +65,17 @@ Retrieves publicly available information such as:
 
 ### Lead Scoring
 
-Lead qualification based on:
+Lead qualification based on the following model:
 
 | Factor | Weight |
-|----------|----------|
+|----------|----------:|
 | Training Need | 20 |
 | Budget | 25 |
 | Timeline | 20 |
 | Company Size / Scope | 20 |
 | Engagement / Next Step | 15 |
 
-Lead Categories:
+#### Lead Categories
 
 - Hot: 75-100
 - Warm: 50-74
@@ -83,13 +83,13 @@ Lead Categories:
 
 ### Automated Reporting
 
-Generates a structured management report including:
+Generates structured management reports including:
 
 - Opportunity summary
 - Lead score
 - Company background
 - Recommended next actions
-- Supporting sources
+- Supporting research sources
 
 ### CRM Logging
 
@@ -107,3 +107,51 @@ Creates personalized outreach drafts based on:
 ---
 
 ## Example Outputs
+
+### Lead Report
+
+![Lead Report](lead_report.png)
+
+### CRM Lead Sheet
+
+![CRM Lead Sheet](lead_sheet.png)
+
+### Follow-Up Email Draft
+
+![Follow-Up Email Draft](follow_up_draft.png)
+
+---
+
+## Technology Stack
+
+- n8n
+- Groq
+- Tavily Search API
+- Gmail
+- Google Sheets
+- Python Code Node
+
+---
+
+## Use Case
+
+This workflow was created as a prototype for automating trade fair lead qualification and follow-up activities.
+
+The objective is to reduce manual effort, improve lead consistency, enrich sales conversations with external research, and accelerate post-event business development.
+
+---
+
+## Repository Contents
+
+| File | Description |
+|--------|--------|
+| workflow.json | Complete n8n workflow export |
+| workflow.png | Workflow overview |
+rt |
+| follow_up_draft.png | Example follow-up email draft |
+
+---
+
+## License
+
+MIT License
