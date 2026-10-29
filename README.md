@@ -143,12 +143,12 @@ The objective is to reduce manual effort, improve lead consistency, enrich sales
 
 ## Repository Contents
 
-| File | Description |
-|--------|--------|
-| workflow.json | Complete n8n workflow export |
-| workflow.png | Workflow overview |
-rt |
-| follow_up_draft.png | Example follow-up email draft |
+Repository Contents
+workflow.json - Complete n8n workflow export
+workflow.png - Workflow overview
+lead_report.png - Example management report
+lead_sheet.png - Example CRM export
+follow_up_draft.png - Example follow-up email draft
 
 ---
 
