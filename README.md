@@ -152,6 +152,18 @@ follow_up_draft.png - Example follow-up email draft
 
 ---
 
+## Testing and Data Privacy Notes
+
+The workflow was tested using Tavily Search to research publicly available information about real companies in order to verify the functionality and quality of the company enrichment process.
+
+However, all example outputs, screenshots, lead records, contact information and workflow demonstrations contained in this repository use fictional dummy data only.
+
+To avoid misunderstandings and unintended associations with real organizations, company names identified during testing have been intentionally removed or obscured in the published screenshots.
+
+No real customer data, personal contact information, confidential business information or identifiable lead records are included in this repository.
+
+---
+
 ## License
 
 MIT License
